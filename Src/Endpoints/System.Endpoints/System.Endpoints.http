@@ -1,0 +1,6 @@
+@System.Endpoints_HostAddress = http://localhost:5130
+
+GET {{System.Endpoints_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
