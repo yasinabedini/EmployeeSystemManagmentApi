@@ -6,6 +6,6 @@ using System.Threading.Tasks;
 
 namespace System.Application.Models.Auth.Common
 {
-    public record LoginResponse(bool flag, string? message,string? token = "",string? refreshToken = "");
+    public record TokenResponse(bool flag, string? message,string? token = "",string? refreshToken = "");
 
 }

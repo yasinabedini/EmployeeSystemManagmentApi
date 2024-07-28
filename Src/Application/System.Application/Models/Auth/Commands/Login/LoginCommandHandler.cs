@@ -10,23 +10,14 @@ using System.Threading.Tasks;
 
 namespace System.Application.Models.Auth.Commands.Login
 {
-    public class LoginCommandHandler(IUserRepository repository) : ICommandHandler<LoginCommand, LoginResponse>
+    public class LoginCommandHandler(IUserRepository repository) : ICommandHandler<LoginCommand, TokenResponse>
     {
-        public async Task<LoginResponse> Handle(LoginCommand request, CancellationToken cancellationToken)
+        public async Task<TokenResponse> Handle(LoginCommand request, CancellationToken cancellationToken)
         {
-            var result = await repository.SignIn(request.EmailAddress!, request.Password!);
-
-            if (!result.Item1 || result.Item3.Equals(new ApplicationUser()))
-            {
-                return new LoginResponse(result.Item1, result.Item2!);
-            }
-
-            string userRole = repository.GetUserRole(result.Item3.Id);
-
-            var token = repository.GenerateToken(result.Item3!, userRole);
-            var refreshToken = repository.GenerateRefreshToken();
-
-            return await Task.FromResult(new LoginResponse(result.Item1, result.Item2, token, refreshToken));
+            //return tuple<bool,string,string,string> =>   item1:flag | item2:message | item3:token | item4:refreshToken
+            var result = await repository.SignInAsync(request.EmailAddress!, request.Password!);
+            
+            return new TokenResponse(result.Item1,result.Item2,result.Item3,result.Item4);
         }
     }
 }

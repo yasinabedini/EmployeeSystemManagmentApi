@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.Options;
+﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Org.BouncyCastle.Bcpg;
 using System.Domain.Auth.Entities;
@@ -26,7 +27,7 @@ namespace System.Infra.Models.Auth.Repositories
             Config = config;
         }
 
-        public async Task<Tuple<bool, string>> CreateUser(string email, string password, string fullName)
+        public async Task<Tuple<bool, string>> CreateUserAsync(string email, string password, string fullName)
         {
             if (string.IsNullOrEmpty(email) || string.IsNullOrEmpty(password) || string.IsNullOrEmpty(fullName)) return Tuple.Create(false, "Model Is Empty");
 
@@ -67,19 +68,37 @@ namespace System.Infra.Models.Auth.Repositories
 
             return Tuple.Create(true, "Account Created");
         }
-
-        public async Task<Tuple<bool, string, ApplicationUser>> SignIn(string email, string password)
+        
+        public async Task<Tuple<bool, string, string, string>> SignInAsync(string email, string password)
         {
-            if (string.IsNullOrEmpty(email) || string.IsNullOrEmpty(password)) return Tuple.Create(false, "Model is empty", new ApplicationUser());
+            if (string.IsNullOrEmpty(email) || string.IsNullOrEmpty(password)) return Tuple.Create(false, "Model is empty", "", "");
 
             var user = FindUserByEmail(email);
 
-            if (user is null) return Tuple.Create(false, "User not found", new ApplicationUser());
+            if (user is null) return Tuple.Create(false, "User not found", "", "");
 
-            if (Context.UserRoles.Any(t => t.UserId == user.Id)) return Tuple.Create(false, "User Not Found", new ApplicationUser());
+            if (Context.UserRoles.Any(t => t.UserId == user.Id)) return Tuple.Create(false, "User Not Found", "", "");
 
+            var role = GetUserRole(user.Id);
 
-            return Tuple.Create(true, "Login Suucessfully..", user);
+            var token = GenerateToken(user, role);
+            var refreshToken = GenerateRefreshToken();
+
+            //Save Refresh Token
+            var findToken =await Context.RefreshTokenInfos.FirstOrDefaultAsync(t => t.UserId == user.Id);
+            if (findToken is not null)
+            {
+                findToken.ChangeToken(refreshToken);
+                Context.Update(findToken);
+                Save();
+            }
+            else
+            {
+                Context.RefreshTokenInfos.Add(RefreshTokenInfo.Create(user.Id, refreshToken));
+                Save();
+            }
+
+            return Tuple.Create(true, "Login Suucessfully..", token, refreshToken);
         }
 
         public ApplicationUser FindUserByEmail(string email)
@@ -114,8 +133,36 @@ namespace System.Infra.Models.Auth.Repositories
         public string GetUserRole(long userId)
         {
             var roleId = Context.UserRoles.FirstOrDefault(x => x.UserId == userId).RoleId;
-            
+
             return Context.SystemRoles.Find(roleId).Name;
+        }
+
+        public async Task<Tuple<bool, string, string, string>> RefreshTokenAsync(string token)
+        {
+            if (string.IsNullOrEmpty(token)) return Tuple.Create(false, "Model is empty", "", "");
+
+            var findToken = Context.RefreshTokenInfos.FirstOrDefault(t => t.Token.Equals(token));
+            if (findToken is null)
+            {
+                return Tuple.Create(false, "The entered Token is not valid", "", "");
+            }
+
+            var findUser = await Context.ApplicationUsers.FirstOrDefaultAsync(t => t.Id == findToken.UserId);
+            if (findUser is null)
+            {
+                return Tuple.Create(false, "The entered Token is not valid", "", "");
+            }
+
+            var roleName = GetUserRole(findUser.Id);
+
+            var createdToken = GenerateToken(findUser, roleName);
+            var refreshToken = GenerateRefreshToken();
+
+             findToken.ChangeToken(refreshToken);
+             Context.Update(findToken);
+            Save();
+
+            return Tuple.Create(true, "Token refresh Successfully", createdToken, refreshToken);
         }
     }
 }

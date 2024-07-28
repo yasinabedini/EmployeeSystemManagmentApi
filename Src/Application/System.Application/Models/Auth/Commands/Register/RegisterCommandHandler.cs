@@ -13,9 +13,9 @@ namespace System.Application.Models.Auth.Commands.Register
     {
         public async Task<GeneralResponse> Handle(RegisterCommand request, CancellationToken cancellationToken)
         {
-            if (request.Password!.Equals(request.ConfirmPassword)) return new GeneralResponse(false, "Password not match with password Confirmation ...");
+            if (!request.Password!.Equals(request.ConfirmPassword)) return new GeneralResponse(false, "Password not match with password Confirmation ...");
 
-            var result = await repository.CreateUser(request.EmailAddress!, request.Password, request.FullName!);
+            var result = await repository.CreateUserAsync(request.EmailAddress!, request.Password, request.FullName!);
 
             return new GeneralResponse(result.Item1, result.Item2);
         }

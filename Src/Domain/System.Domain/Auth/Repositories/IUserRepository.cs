@@ -10,11 +10,17 @@ namespace System.Domain.Auth.Repositories
 {
     public interface IUserRepository : IRepository<ApplicationUser>
     {
-        Task<Tuple<bool, string>> CreateUser(string Email, string Password, string FullName);
-        Task<Tuple<bool, string, ApplicationUser>> SignIn(string Email, string Password);
+        //item1:flag | item2:message
+        Task<Tuple<bool, string>> CreateUserAsync(string Email, string Password, string FullName);
+
+        //item1:flag | item2:message | item3:token | item4:refreshToken
+        Task<Tuple<bool, string, string, string>> SignInAsync(string Email, string Password);
         ApplicationUser FindUserByEmail(string email);
         string GenerateToken(ApplicationUser user, string role);
         string GenerateRefreshToken();
         string GetUserRole(long userId);
+
+        //item1:flag | item2:message | item3:token | item4:refreshToken
+        Task<Tuple<bool, string, string, string>> RefreshTokenAsync(string token);
     }
 }
