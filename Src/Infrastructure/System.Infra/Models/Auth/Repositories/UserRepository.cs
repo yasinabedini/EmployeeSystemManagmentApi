@@ -2,6 +2,7 @@
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Org.BouncyCastle.Bcpg;
+using Org.BouncyCastle.Ocsp;
 using System.Domain.Auth.Entities;
 using System.Domain.Auth.Repositories;
 using System.Domain.Common;
@@ -77,7 +78,10 @@ namespace System.Infra.Models.Auth.Repositories
 
             if (user is null) return Tuple.Create(false, "User not found", "", "");
 
-            if (Context.UserRoles.Any(t => t.UserId == user.Id)) return Tuple.Create(false, "User Not Found", "", "");
+            if (!Context.UserRoles.Any(t => t.UserId == user.Id)) return Tuple.Create(false, "User Not Found", "", "");
+
+            if (!BCrypt.Net.BCrypt.Verify(password,user.Password)) return Tuple.Create(false, "Email or password is incorrec!", "", "");
+
 
             var role = GetUserRole(user.Id);
 
