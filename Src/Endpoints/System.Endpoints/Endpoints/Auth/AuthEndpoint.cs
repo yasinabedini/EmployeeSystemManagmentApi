@@ -19,7 +19,7 @@ namespace System.Endpoints.Endpoints.Auth
                 return response;
             });
 
-            app.MapPost("api/Auth/login/", async ([FromBody] LoginCommand command, [FromServices] ISender sender, CancellationToken cancellationToken) =>
+            app.MapPost("api/Auth/signin/", async ([FromBody] LoginCommand command, [FromServices] ISender sender, CancellationToken cancellationToken) =>
             {
                 var response = await sender.Send(command, cancellationToken);
 
